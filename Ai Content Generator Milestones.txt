@@ -1,0 +1,200 @@
+Milestone 1: Project Foundation & Authentication
+
+  Goal: Users can register, login, and access a protected dashboard.
+
+  Backend:
+  - Database migrations: users table (with credit_balance, is_admin columns)
+  - Laravel Fortify setup (registration, login, logout, password reset)
+  - Inertia middleware sharing auth state
+  - AdminOnly middleware
+  - User model + factory + seeder (including an admin user)
+
+  Frontend:
+  - Auth pages: Register, Login, Forgot Password, Reset Password
+  - App layout with navigation (sidebar/topbar)
+  - Dashboard page (empty shell — just shows authenticated user's name and credit balance)
+
+  Testable outcomes:
+  - Register a new user → lands on dashboard
+  - Login/logout works
+  - Password reset email sends and resets password
+  - Unauthenticated users redirected to login
+  - credit_balance defaults to 0
+  - Admin seeder creates an admin user
+
+  ---
+  Milestone 2: Tone Management (CRUD)
+
+  Goal: Users can create and manage their personal writing tones.
+
+  Backend:
+  - Migration: user_tones table
+  - UserTone model + factory
+  - TonePolicy (owner-only access)
+  - ToneController (index, store, edit, update, destroy)
+  - StoreToneRequest, UpdateToneRequest form requests
+  - CreateToneAction, UpdateToneAction, DeleteToneAction
+
+  Frontend:
+  - Tones index page (list user's tones)
+  - Create/edit tone form
+  - Delete confirmation
+
+  Testable outcomes:
+  - User creates a tone with name + description
+  - Unique name per user enforced
+  - User edits/deletes own tone
+  - User cannot see or modify another user's tones (policy test)
+  - Pagination works with many tones
+
+  ---
+  Milestone 3: Credit System & Billing
+
+  Goal: Users can purchase credits via Stripe and see their balance/transactions.
+
+  Backend:
+  - Migrations: credit_transactions, stripe_payments, credit_packages (optional)
+  - Models + factories: CreditTransaction, StripePayment, CreditPackage
+  - Enums: TransactionType
+  - CreditService (getBalance, hasCredits, deduct, add, adjust — all atomic with lockForUpdate)
+  - StripeService (createCheckoutSession, constructWebhookEvent)
+  - CreateCheckoutSessionAction, HandleStripeWebhookAction
+  - AddCreditAction, DeductCreditAction
+  - BillingController, TransactionController, WebhookController
+  - EnsureUserHasCredits middleware
+  - Webhook signature verification + idempotency
+  - Hardcoded packages in config/packages.php
+
+  Frontend:
+  - Billing page (list packages, purchase buttons)
+  - Success/cancel return pages
+  - Transaction history page
+  - Credit balance shown in nav/dashboard
+
+  Testable outcomes:
+  - CreditService::deduct atomically decrements balance and logs transaction
+  - CreditService::add atomically increments balance and logs transaction
+  - Double-deduction prevented under concurrent requests (lockForUpdate)
+  - User with 0 credits cannot deduct
+  - Stripe Checkout session created with correct metadata
+  - Webhook processes checkout.session.completed → credits added
+  - Duplicate webhook is idempotent (no double credit)
+  - Invalid webhook signature returns 400
+  - Transaction history shows all credit changes with before/after snapshots
+
+  ---
+  Milestone 4: AI Content Generation (Core)
+
+  Goal: Users can generate content via Gemini API with real-time streaming.
+
+  Backend:
+  - Migration: generations table
+  - Generation model + factory
+  - Enums: ContentType, OutputLanguage
+  - GenerationPolicy (owner-only)
+  - Prompt template files (app/Prompts/*.md for all 5 content types)
+  - PromptBuilderService (load template, inject tone/prompt/language)
+  - GeminiService (non-streaming fallback)
+  - GeminiStreamService (streaming via SSE)
+  - GenerateContentAction (validate → check credits → deduct → create record → redirect)
+  - GenerationController::store (POST /generate)
+  - GenerationStreamController::stream (GET /generate/{id}/stream — SSE endpoint)
+  - Credit refund on stream failure
+  - Rate limiting on /generate (10/min/user)
+
+  Frontend:
+  - Generation form on dashboard (content type, tone selector, language, prompt textarea)
+  - Detail page (/history/{id}) with SSE integration (EventSource)                                      
+  - Typing effect as tokens stream in                             
+  - Error banner + refund notice on failure                                                             
+  - Action buttons appear after completion (copy, edit)                                               
+                                                                                                        
+  Testable outcomes:                                                                                    
+  - PromptBuilderService correctly assembles prompt from template + tone + user input + language        
+  - Content type enum validates only the 5 allowed types                                                
+  - Credit is deducted before generation starts                                                       
+  - Generation record created with status pending                                                       
+  - SSE stream delivers tokens to the browser                                                           
+  - On completion, ai_content saved and status becomes completed
+  - On Gemini failure, status becomes failed and credit is refunded                                     
+  - User cannot stream another user's generation (policy)                                               
+  - Rate limiting blocks excessive requests                                                             
+                                                                                                        
+  ---                                                                                                   
+  Milestone 5: Content History Management                                                               
+                                                                                                        
+  Goal: Users can browse, view, edit, copy, and delete their past generations.
+                                                                                                        
+  Backend:                                                                                            
+  - ContentHistoryService (paginated queries, filters)                                                  
+  - GenerationController (index, show, update, destroy)                                               
+  - DeleteGenerationAction
+                                                                                                        
+  Frontend:
+  - History index page (paginated list with content type, date, status, preview)                        
+  - Detail view (full content, metadata)                                                                
+  - Inline edit → saves as edited_content
+  - Copy to clipboard button                                                                            
+  - Delete with confirmation                                                                            
+  - Recent history widget on dashboard (last 5-10)                                                      
+                                                                                                        
+  Testable outcomes:                                                                                    
+  - History lists only the authenticated user's generations
+  - Pagination works correctly                                                                          
+  - User can edit content → edited_content column updated, ai_content unchanged                       
+  - User can delete a generation                                                                        
+  - User cannot view/edit/delete another user's generation                                              
+  - Dashboard shows recent history entries                
+                                                                                                        
+  ---                                                                                                   
+  Milestone 6: Admin Panel
+                                                                                                        
+  Goal: Admins can manage users, view transactions, and adjust credits.                               
+                                                                                                        
+  Backend:
+  - Admin\UserController (index, show, adjustCredits)                                                   
+  - Admin\TransactionController (index)                                                               
+  - AdjustCreditAction (admin add/deduct with reason)
+  - AdjustCreditRequest                                                                                 
+  - (Optional) Admin\PackageController CRUD for credit packages
+                                                                                                        
+  Frontend:                                                                                             
+  - Admin user list (paginated, with credit balance)                                                    
+  - Admin user detail (profile, balance, generation history, transactions)                              
+  - Credit adjustment form (amount, reason)                                                           
+  - Admin transaction list (all users, filterable)                                                      
+                                                                                                        
+  Testable outcomes:                                                                                    
+  - Non-admin users get 403 on all /admin/* routes                                                      
+  - Admin can view paginated user list                                                                  
+  - Admin can view a specific user's details + history + transactions                                 
+  - Admin can add/deduct credits with a reason → logged in credit_transactions as adjustment            
+  - Admin transaction list shows all records across users
+                                                                                                        
+  ---                                                                                                 
+  Milestone 7: Polish, Security Hardening & Production Readiness                                        
+                                                                                                        
+  Goal: The application is production-ready with proper error handling, rate limiting, and
+  observability.                                                                                        
+                                                                                                      
+  Backend:                                                                                              
+  - Rate limiting configuration for all route groups (auth, generate, billing)                        
+  - Structured logging for generation, payment, and credit events                                       
+  - Prompt injection mitigation (input length cap, delimiters)   
+  - Database CHECK constraint on credit_balance >= 0                                                    
+  - Error pages (403, 404, 500) via Inertia                                                             
+  - Nginx SSE configuration documentation/setup                                                         
+                                                                                                        
+  Frontend:                                                                                             
+  - Loading states and skeleton UIs for deferred props                                                  
+  - Friendly error messages for all failure scenarios                                                   
+  - Responsive design pass across all pages                                                           
+  - Empty states for no tones, no history, no transactions                                              
+                                                                                                        
+  Testable outcomes:
+  - Rate limiter blocks excess requests and returns 429                                                 
+  - User prompt over 2000 chars is rejected                                                             
+  - Invalid content type / language rejected at validation
+  - All error pages render correctly                                                                    
+  - Full end-to-end flow: register → buy credits → create tone → generate content → view history → admin
+   adjusts credits
