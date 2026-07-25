@@ -1,25 +1,35 @@
-import { Head } from '@inertiajs/react';
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
+import { Head, usePage } from '@inertiajs/react';
 import { dashboard } from '@/routes';
 
+type PageProps = {
+    user?: {
+        name?: string;
+        credit_balance?: number;
+    };
+};
+
 export default function Dashboard() {
+    const { props } = usePage<PageProps>();
+    const user = props.user;
+
     return (
         <>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                </div>
-                <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+                <div className="rounded-xl border border-sidebar-border/70 bg-background p-6 shadow-sm dark:border-sidebar-border">
+                    <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                        Welcome back
+                    </p>
+                    <h1 className="mt-2 text-2xl font-semibold">
+                        {user?.name ?? 'Guest'}
+                    </h1>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        Your current credit balance is{' '}
+                        <span className="font-semibold text-foreground">
+                            {user?.credit_balance ?? 0}
+                        </span>
+                        .
+                    </p>
                 </div>
             </div>
         </>
