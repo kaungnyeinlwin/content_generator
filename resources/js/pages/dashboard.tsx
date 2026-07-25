@@ -5,6 +5,7 @@ type PageProps = {
     user?: {
         name?: string;
         credit_balance?: number;
+        is_admin?: boolean;
     };
 };
 
@@ -30,6 +31,11 @@ export default function Dashboard() {
                         </span>
                         .
                     </p>
+                    {user?.is_admin && (
+                        <div className="mt-4 inline-flex rounded-full bg-accent/10 px-3 py-1 text-sm font-medium text-accent-foreground">
+                            Admin user
+                        </div>
+                    )}
                 </div>
             </div>
         </>

@@ -14,6 +14,7 @@ class DashboardController extends Controller
             'user' => [
                 'name' => $request->user()?->name,
                 'credit_balance' => (int) ($request->user()?->credit_balance ?? 0),
+                'is_admin' => (bool) ($request->user()?->is_admin ?? false),
             ],
         ]);
     }
